@@ -75,28 +75,28 @@ def find_lines(src, image):
         for i in range(0, len(linesP)):
             l = linesP[i][0]
             cv2.line(image, (l[0], l[1]), (l[2], l[3]), (0, 0, 255), 3, cv2.LINE_AA)
-            P1 = (l[0], l[1])
-            P2 = (l[2], l[3])
-            m, q = find_line_equation(P1, P2)
-            if m is not None and q is not None:
-                lines.append((m, q))
-                M.append(m)
-                Q.append(q)
-            elif m is None:
-                vertical.append(q)
-            elif q is None:
-                orizzontal.append(m)
+    #         P1 = (l[0], l[1])
+    #         P2 = (l[2], l[3])
+    #         m, q = find_line_equation(P1, P2)
+    #         if m is not None and q is not None:
+    #             lines.append((m, q))
+    #             M.append(m)
+    #             Q.append(q)
+    #         elif m is None:
+    #             vertical.append(q)
+    #         elif q is None:
+    #             orizzontal.append(m)
 
-    # plt.plot(M, Q, "o", color="red")
+    # # plt.plot(M, Q, "o", color="red")
 
-    # plt.savefig("linee.png")
-    # plt.clf()
+    # # plt.savefig("linee.png")
+    # # plt.clf()
 
-    if len(M) > 0:
+    # if len(M) > 0:
 
-        dbscan = DBSCAN(eps=100, min_samples=5)
-        labels = dbscan.fit(np.array([M, Q]).T).labels_
-        colors = np.array(["red", "green", "blue", "gray"])[labels]
+    #     dbscan = DBSCAN(eps=100, min_samples=5)
+    #     labels = dbscan.fit(np.array([M, Q]).T).labels_
+    #     # colors = np.array(["red", "green", "blue", "gray"])[labels]
 
         # plt.scatter(M, Q, c=colors, s=10)
 
@@ -113,27 +113,28 @@ def trovaCampoDaGioco(image):
     image_green = cv2.bitwise_and(image, image, mask=mask_green)
     gray_image = cv2.cvtColor(image_green, cv2.COLOR_BGR2GRAY)
     _, thresholded_image = cv2.threshold(gray_image, 1, 255, cv2.THRESH_BINARY_INV)
-    contours, _ = cv2.findContours(
-        thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
-    cleaned_image = np.ones_like(image, dtype=np.uint8) * 255
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area > 10:
-            cv2.drawContours(cleaned_image, [contour], -1, (0), thickness=cv2.FILLED)
-    cleaned_image = 255 - cleaned_image
-    cleaned_image = cv2.cvtColor(cleaned_image, cv2.COLOR_BGR2GRAY)
-    result = copy.deepcopy(thresholded_image)
-    result[cleaned_image == 255] = 255
-    difference = result - thresholded_image
-    contours, _ = cv2.findContours(
-        difference, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area > 600:
-            cv2.drawContours(result, [contour], -1, (0), thickness=cv2.FILLED)
-    return result
+    return thresholded_image
+    # contours, _ = cv2.findContours(
+    #     thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    # )
+    # cleaned_image = np.ones_like(image, dtype=np.uint8) * 255
+    # for contour in contours:
+    #     area = cv2.contourArea(contour)
+    #     if area > 10:
+    #         cv2.drawContours(cleaned_image, [contour], -1, (0), thickness=cv2.FILLED)
+    # cleaned_image = 255 - cleaned_image
+    # cleaned_image = cv2.cvtColor(cleaned_image, cv2.COLOR_BGR2GRAY)
+    # result = copy.deepcopy(thresholded_image)
+    # result[cleaned_image == 255] = 255
+    # difference = result - thresholded_image
+    # contours, _ = cv2.findContours(
+    #     difference, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    # )
+    # for contour in contours:
+    #     area = cv2.contourArea(contour)
+    #     if area > 600:
+    #         cv2.drawContours(result, [contour], -1, (0), thickness=cv2.FILLED)
+    # return result
 
 
 def filter_and_find_players(player_image, binary_player_image):
@@ -145,6 +146,7 @@ def filter_and_find_players(player_image, binary_player_image):
     for contour in contours:
         area = cv2.contourArea(contour)
         if area > 200:
+            # show_image(player_image)
             mask = np.zeros_like(binary_player_image)
             cv2.drawContours(mask, [contour], -1, (255, 255, 255), thickness=cv2.FILLED)
             player_image = cv2.bitwise_and(player_image, player_image, mask=mask)
@@ -180,18 +182,17 @@ def bounding_box_player(image, binary, squad):
         upper_color = upper_2
     for c in contours:
         x, y, w, h = cv2.boundingRect(c)
-        if w > 15 and h >= 15:
-            rect = image[y : y + h, x : x + w]
-            rect_hsv = cv2.cvtColor(rect, cv2.COLOR_BGR2HSV)
-            mask1 = cv2.inRange(rect_hsv, lower_color, upper_color)
-            res1_img = cv2.bitwise_and(rect_hsv, rect_hsv, mask=mask1)
-            res1 = cv2.cvtColor(res1_img, cv2.COLOR_HSV2BGR)
-            res1 = cv2.cvtColor(res1, cv2.COLOR_BGR2GRAY)
-            nzCount1 = cv2.countNonZero(res1)
-            if nzCount1 > 50:
-                cv2.rectangle(image, (x, y), (x + w, y + h), color, 3)
-            else:
-                show_image(image[y : y + h, x : x + w])
+        # if w > 15 and h >= 15:
+        rect = image[y : y + h, x : x + w]
+        rect_hsv = cv2.cvtColor(rect, cv2.COLOR_BGR2HSV)
+        mask1 = cv2.inRange(rect_hsv, lower_color, upper_color)
+        res1_img = cv2.bitwise_and(rect_hsv, rect_hsv, mask=mask1)
+        res1 = cv2.cvtColor(res1_img, cv2.COLOR_HSV2BGR)
+        res1 = cv2.cvtColor(res1, cv2.COLOR_BGR2GRAY)
+        nzCount1 = cv2.countNonZero(res1)
+        if nzCount1 > 10:
+            cv2.rectangle(image, (x, y), (x + w, y + h), color, 3)
+            # show_image(image[y : y + h, x : x + w])
 
 
 def findPlayers(campo, image):
@@ -202,18 +203,24 @@ def findPlayers(campo, image):
     squad2 = np.zeros_like(campo)
     for c in contours:
         x, y, w, h = cv2.boundingRect(c)
-        player_img = image[y : y + h, x : x + w]
-        binary_player_img = campo[y : y + h, x : x + w]
-        mask = np.zeros_like(binary_player_img)
-        cv2.drawContours(mask, [c], -1, (255, 255, 255), thickness=cv2.FILLED)
-        s1, s2 = filter_and_find_players(player_img, binary_player_img)
-        squad1[y : y + h, x : x + w] = cv2.add(squad1[y : y + h, x : x + w], s1)
-        squad2[y : y + h, x : x + w] = cv2.add(squad2[y : y + h, x : x + w], s2)
+        if w > 15 and h >= 15:
+            player_img = image[y : y + h, x : x + w]
+            binary_player_img = campo[y : y + h, x : x + w]
+            mask = np.zeros_like(binary_player_img)
+            # cv2.drawContours(mask, [c], -1, (255, 255, 255), thickness=cv2.FILLED)
+            # show_image(player_img)
+            # show_image(binary_player_img)
+            s1, s2 = filter_and_find_players(player_img, binary_player_img)
+            squad1[y : y + h, x : x + w] = cv2.add(squad1[y : y + h, x : x + w], s1)
+            squad2[y : y + h, x : x + w] = cv2.add(squad2[y : y + h, x : x + w], s2)
 
     # s1 = cv2.bitwise_and(image, image,mask=squad1)
     # show_image(s1)
     # s2 = cv2.bitwise_and(image, image,mask=squad2)
     # show_image(s2)
+
+    # show_image(squad1)
+    # show_image(squad2)
 
     bounding_box_player(image, squad1, 1)
     bounding_box_player(image, squad2, 0)
