@@ -8,17 +8,21 @@ from classification import *
 
 if __name__ == "__main__":
     vidcap = cv2.VideoCapture("2h-left-5min.avi")
+    # generate_photo_dataset(vidcap,50)
     success, image = vidcap.read()
     count = 0
     success = True
     idx = 0
-    path_s1 = "test/squad1"
-    path_s2 = "test/squad2"
-    images_s1 = leggi_immagini_cartella(path_s1)
-    images_s2 = leggi_immagini_cartella(path_s2)
+    path = "img_players"
+    dataset_images = []
+    labels = []
+    cartelle = [nome for nome in os.listdir(path) if os.path.isdir(os.path.join(path, nome))]
 
-    dataset_images = images_s1 + images_s2
-    labels = [0] * len(images_s1) + [1] * len(images_s2)
+    for idx, cartella in enumerate(cartelle, start=1):
+        path_cartella = os.path.join(path, cartella)
+        images = leggi_immagini_cartella(path_cartella)
+        dataset_images += images
+        labels += [idx] * len(images)
 
     # Genera gli istogrammi HSV dalle immagini
     histogram_features = calcola_istogrammi(dataset_images)
@@ -30,47 +34,37 @@ if __name__ == "__main__":
     svm_classifier = SVC(kernel='linear')
     svm_classifier.fit(X_train, y_train)
 
-
     # Read the video frame by frame
     while success:
-        nuova_dimensione = (2048, 1080)
-        image = cv2.resize(image, nuova_dimensione)
-        pts = np.array([[257, 540], [1018, 263], [1731, 246], [1732, 643]], np.int32)
-        pts = pts.reshape((-1, 1, 2))
 
-        # Crea la maschera
-        mask = np.zeros((1080, 2048), dtype=np.uint8)  # Creazione di un'immagine vuota per la maschera
-        cv2.fillPoly(mask, [pts], 255)  # Disegna il poligono sulla maschera
-
-        # Applica la maschera all'immagine originale
-        image = cv2.bitwise_and(image, image, mask=mask)
         start_time = time.time()
-        campo = trovaCampoDaGioco(image=image)
-        masked_image = cv2.bitwise_and(image, image, mask=campo)
-        hist_hue = cv2.calcHist([masked_image], [0], None, [180], [0, 180])
-        hist_saturation = cv2.calcHist([masked_image], [1], None, [256], [0, 256])
-        hist_value = cv2.calcHist([masked_image], [2], None, [256], [0, 256])
-        
-        hist_hue = hist_hue[1:]  # Remove the first element from hist_hue
-        hist_saturation = hist_saturation[1:-1]  # Remove the first and last element from hist_saturation
-        hist_value = hist_value[1:-1]  # Remove the first and last element from hist_value
 
-        lower = np.array([100, 0, 0])
-        upper = np.array([180, 255, 255])
-        mask_hist = cv2.inRange(masked_image, lower, upper)
+        eroded_image, image = preprocess(image)
         
-        image_hist = cv2.bitwise_and(masked_image, masked_image, mask=mask_hist)
-        inverse_mask_hist = cv2.bitwise_not(mask_hist)  # Create inverse mask
-        inverse_image_hist = cv2.bitwise_and(masked_image, masked_image, mask=inverse_mask_hist)
-        gray_image = cv2.cvtColor(inverse_image_hist, cv2.COLOR_BGR2GRAY)
-        _, binary_image = cv2.threshold(gray_image, 1, 255, cv2.THRESH_BINARY)
-        if binary_image.dtype != np.uint8:
-            binary_image = binary_image.astype(np.uint8)
+        findPlayers(eroded_image, image,svm_classifier)
 
-        findPlayers(binary_image, image,svm_classifier)
+        altezza, larghezza = image.shape[:2]
+
+        # Specifica i 4 punti per deformare l'immagine (in alto a sinistra, in alto a destra, in basso a sinistra, in basso a destra)
+        pts = [[1018, 263], [1731, 246],[257, 540], [1732, 643]]
+        # i =0 
+        # for pt in pts:
+        #     cv2.circle(image, tuple(pt), 5, (0, 0, 255), -1)
+        #     cv2.putText(image, str(i), (pt[0] + 10, pt[1] + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        #     i = i+1
+
+        show_image(image)
+
+        # Deforma l'immagine basata sui 4 punti specificati
+
+        # img_deformata = deforma_immagine(image, pts)
+
+        # show_image(img_deformata)
+
 
         end_time = time.time()
         fps = 1 / (end_time-start_time)
 
         print(f"{fps:.2f} FPS")        
         success, image = vidcap.read()
+
