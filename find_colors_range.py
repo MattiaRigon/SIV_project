@@ -1,53 +1,78 @@
 import cv2
 import numpy as np
-from show_image import show_image
+from collections import Counter
+import matplotlib.pyplot as plt
+import matplotlib
+import os
 
-# Carica l'immagine
-image = cv2.imread("progetto/SIV_project/maglia-calcio-francia-2018-blu.jpg")
+matplotlib.use('TkAgg') 
 
-# Converte l'immagine in HSV (Hue, Saturation, Value)
-hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+def leggi_immagini_cartella(path_cartella):
+    elenco_immagini = []
+    if not os.path.exists(path_cartella):
+        print(f"Il percorso '{path_cartella}' non esiste.")
+        return elenco_immagini
+    
+    files = os.listdir(path_cartella)
+    immagini = [file for file in files if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
+    
+    for img_file in immagini:
+        img_path = os.path.join(path_cartella, img_file)
+        img = cv2.imread(img_path)
+        
+        if img is not None:
+            # hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)  # Converti l'immagine in HSV
+            elenco_immagini.append(img)
+        else:
+            print(f"Impossibile leggere l'immagine: {img_path}")
+    
+    return elenco_immagini
 
-lower_white = np.array([0, 0, 200])  # Range bianco
-upper_white = np.array([255, 30, 255])
+def extract_top_colors(image):
+    # Carica l'immagine
 
-# Crea la maschera per il verde (sfondo)
-mask_white = cv2.inRange(hsv_image, lower_white, upper_white)
+    # Converte l'immagine da BGR a RGB
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-inverted_mask = cv2.bitwise_not(mask_white)
+    # Ridimensiona l'immagine per facilitare il calcolo dei colori
+    resized_image = cv2.resize(image, (100, 100))  # Puoi regolare le dimensioni a seconda delle tue esigenze
 
-# Applica la maschera verde all'immagine originale
-image_not_white = cv2.bitwise_and(image, image, mask=inverted_mask)
-
-
-# Definisci il riquadro (ROI) intorno alla maglietta
-# Questa regione deve includere principalmente la maglietta di interesse
-roi = image_not_white
-
-# Calcola l'istogramma nell'intervallo di Hue (H)
-hist = cv2.calcHist([roi], [0], None, [256], [0, 256])
-
-# Calcola l'istogramma cumulativo
-cdf = hist.cumsum()
-cdf_normalized = cdf / cdf[-1]
-
-# Trova i limiti (lower e upper) usando una soglia specifica
-# Ad esempio, scegliamo di catturare l'80% dei pixel
-threshold = 0.95
-lower_value = np.argmax(cdf_normalized > (1 - threshold))
-upper_value = np.argmax(cdf_normalized > threshold)
-
-# Applica i valori lower e upper per la selezione del colore
-lower_color = np.array([lower_value, 0, 0])
-upper_color = np.array([upper_value, 255, 255])
-
-# Filtra l'immagine per isolare il colore di interesse
-mask = cv2.inRange(image_not_white, lower_color, upper_color)
-result = cv2.bitwise_and(image_not_white, image_not_white, mask=mask)
-
+    # Appiattisci l'immagine per ottenere una lista di colori
+    pixels = resized_image.reshape((-1, 3))
+    
+    # Calcola i 5 colori più presenti nell'immagine
+    color_counts = Counter(tuple(pixel) for pixel in pixels)
+    top_colors = color_counts.most_common(6)
+    if top_colors[0][0] == (0,0,0):
+        top_colors = top_colors[1:6]
+    return top_colors
 
 
-# Visualizza l'immagine risultante
-cv2.imshow("Immagine con filtro colore", result)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+path_test = "labeled_photo/squad1"
+images_s1 = leggi_immagini_cartella(path_test)
+
+for image in images_s1:
+    top_colors = extract_top_colors(image)
+    print(top_colors)
+    # plt.figure(figsize=(8, 2))
+    for i, color in enumerate(top_colors):
+        if color[0] == (0,0,0):
+            continue
+        plt.subplot(1, len(top_colors), i+1)
+        plt.imshow([[color[0]]], extent=[0, 1, 0, 1])
+        plt.axis('off')
+    plt.show()
+    plt.clf()
+# # Percorso dell'immagine di input
+# input_image_path = 'labeled_photo/squad2/Screenshot from 2023-11-28 16-59-41.png'  # Inserisci il percorso della tua immagine
+
+# # Estrai i 5 colori più presenti dall'immagine
+# top_colors = extract_top_colors(input_image_path)
+
+
+
+# plt.show()
+# # Stampa i 5 colori più presenti nell'immagine
+# print("I 5 colori più presenti nell'immagine sono:")
+# for color, count in top_colors:
+#     print(f"Colore: {color}, Frequenza: {count}")

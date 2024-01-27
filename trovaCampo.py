@@ -9,9 +9,6 @@ from matplotlib import pyplot as plt
 from shapely.geometry import LineString
 
 
-from matplotlib import pyplot as plt
-from shapely.geometry import LineString
-
 
 def simplify_line(points):
     line = LineString(points)

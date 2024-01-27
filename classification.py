@@ -147,6 +147,7 @@ def calculate_approximation(h_hist):
 
 
 def calcola_istogrammi(images):
+    H, S, V = [], [], []
     hist_features = []
     for img in images:
 
@@ -160,11 +161,26 @@ def calcola_istogrammi(images):
         hsv_img = cv2.cvtColor(inverse_image_hist, cv2.COLOR_BGR2HSV)
         # show_image(hsv_img)
         # show_image(inverse_image_hist)
-        h_hist = cv2.calcHist([hsv_img], [0], None, [179], [1, 180])  # Calcola l'istogramma per il canale H (tonalità)
+        h_hist = cv2.calcHist([hsv_img], [0], None, [255], [1, 257])  # Calcola l'istogramma per il canale H (tonalità)
         s_hist = cv2.calcHist([hsv_img], [1], None, [255], [0, 256])  # Calcola l'istogramma per il canale S (saturazione)
         v_hist = cv2.calcHist([hsv_img], [2], None, [255], [0, 256])  # Calcola l'istogramma per il canale V (valore)
+
+
+        cv2.normalize(h_hist, h_hist, 0, 255, cv2.NORM_MINMAX)
+        cv2.normalize(s_hist, s_hist, 0, 255, cv2.NORM_MINMAX)
+        cv2.normalize(v_hist, v_hist, 0, 255, cv2.NORM_MINMAX)
+
+
+
         # Concatena gli istogrammi in un unico vettore di feature per l'immagine
-        hist_features.append(h_hist.flatten())#np.concatenate((h_hist, s_hist, v_hist)).flatten())
+        H.append(h_hist.flatten())
+        S.append(s_hist.flatten())
+        V.append(v_hist.flatten())
+        # for i in range(0,len(h_hist)):
+        #     hist = (h_hist[i][0],s_hist[i][0],v_hist[i][0])#,v_hist[i]]  
+        
+        # hist_features.append(hist)
+
         # start_time = time.time()
         # f = calculate_approximation(h_hist.flatten())
         # hist_features.append(f)
@@ -173,7 +189,7 @@ def calcola_istogrammi(images):
 
         # plot_major_colors(h_hist.flatten(),s_hist.flatten(),v_hist.flatten())
     
-    return np.array(hist_features)
+    return np.array(H), np.array(S), np.array(V)
 
 def predict(svm_classifier,image):
     lower = np.array([100, 0, 0])
@@ -184,8 +200,17 @@ def predict(svm_classifier,image):
     hsv_img = cv2.cvtColor(inverse_image_hist, cv2.COLOR_BGR2HSV)
 
     # show_image(hsv_img)
-    h_hist = cv2.calcHist([hsv_img], [0], None, [179], [1, 180])  # Calcola l'istogramma per il canale H (tonalità)
-    predicted_label = svm_classifier.predict([h_hist.flatten()])
+    h_hist = cv2.calcHist([hsv_img], [0], None, [255], [1, 257])  # Calcola l'istogramma per il canale H (tonalità)
+    s_hist = cv2.calcHist([hsv_img], [1], None, [255], [0, 256])  # Calcola l'istogramma per il canale S (saturazione)
+    v_hist = cv2.calcHist([hsv_img], [2], None, [255], [0, 256]) 
+
+    cv2.normalize(h_hist, h_hist, 0, 255, cv2.NORM_MINMAX)
+    cv2.normalize(s_hist, s_hist, 0, 255, cv2.NORM_MINMAX)
+    cv2.normalize(v_hist, v_hist, 0, 255, cv2.NORM_MINMAX)
+
+    hist = np.hstack((h_hist.flatten(), s_hist.flatten(), v_hist.flatten()))
+
+    predicted_label = svm_classifier.predict([hist])
     return predicted_label
     # print(predicted_label)
 
@@ -195,7 +220,7 @@ def predict(svm_classifier,image):
 if __name__ == "__main__":
     # Combina le immagini delle due cartelle
     # path_s1 = "img_players/cluster0"
-    path = "img_players"
+    path = "datasets/2h-left-5min"
     dataset_images = []
     labels = []
     cartelle = [nome for nome in os.listdir(path) if os.path.isdir(os.path.join(path, nome))]
@@ -206,14 +231,30 @@ if __name__ == "__main__":
         dataset_images += images
         labels += [idx] * len(images)
 
+    H, S, V = calcola_istogrammi(dataset_images)
+
+        # Assegnazione dei pesi alle caratteristiche
+    weight_H = 2  # Peso assegnato a X1_train
+    weight_S = 1  # Peso assegnato a X2_train
+    weight_V = 1  # Peso assegnato a X3_train
+
+    # Moltiplicazione delle caratteristiche per i pesi assegnati
+    weighted_X1_train = H * weight_H
+    weighted_X2_train = S * weight_S
+    weighted_X3_train = V * weight_V
+
+    # Combinazione delle caratteristiche pesate
+    combined_weighted_features_train = np.hstack((weighted_X1_train, weighted_X2_train, weighted_X3_train))
+
+
     # Genera gli istogrammi HSV dalle immagini
-    histogram_features = calcola_istogrammi(dataset_images)
+    # histogram_features = calcola_istogrammi(dataset_images)
 
     # Dividi il dataset in set di addestramento e test
-    X_train, X_test, y_train, y_test = train_test_split(histogram_features, labels, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(combined_weighted_features_train, labels, test_size=0.2, random_state=42)
 
     # Addestramento del classificatore SVM
-    svm_classifier = SVC(kernel='linear')
+    svm_classifier = SVC(kernel='linear',C=0.5)
     svm_classifier.fit(X_train, y_train)
 
     # Valutazione delle prestazioni del modello
@@ -223,7 +264,7 @@ if __name__ == "__main__":
 
     print("Accuracy:", accuracy)
 
-    # for image in images_s1:
+    # for image in images_s1:z
     #     predict(svm_classifier,image)
     # for image in images_s2:
     #     predict(svm_classifier,image)

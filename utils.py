@@ -2,6 +2,10 @@ import cv2
 import numpy as np
 from classification import predict 
 import random
+import matplotlib
+import matplotlib.pyplot as plt 
+
+matplotlib.use("TkAgg")
 
 
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -17,7 +21,9 @@ def show_image(output_img):
 		if key == ord('q') or cv2.getWindowProperty("Output Image", cv2.WND_PROP_VISIBLE) < 1:
 			break
 
-def generate_photo_dataset(vidcap,n):
+def generate_photo_dataset(nome_file,n):
+
+    vidcap = cv2.VideoCapture(f"video_input/{nome_file}")
 
     frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     random_indices = random.sample(range(0, frame_count), n)
@@ -32,7 +38,7 @@ def generate_photo_dataset(vidcap,n):
 
     for frame in frames:
         eroded_image, image = preprocess(frame)
-        findPlayers(eroded_image, image,None,creating_dataset=True)
+        findPlayers(eroded_image, image,None,creating_dataset=True,directory_name=nome_file.replace('.avi',''))
 
     vidcap.release()
 
@@ -41,6 +47,7 @@ def preprocess(image):
         
         new_dimension = (2048, 1080)
         image = cv2.resize(image, new_dimension)
+
         pts = np.array([[257, 540], [1018, 263], [1731, 246], [1732, 643]], np.int32)
         pts = pts.reshape((-1, 1, 2))
         mask = np.zeros((1080, 2048), dtype=np.uint8)  # Creazione di un'immagine vuota per la maschera
@@ -74,7 +81,7 @@ def deleteBackground(image):
     _, thresholded_image = cv2.threshold(gray_image, 1, 255, cv2.THRESH_BINARY_INV)
     return thresholded_image
 
-def findPlayers(campo, image,svm_classifier,creating_dataset=False):
+def findPlayers(campo, image,svm_classifier,creating_dataset=False,directory_name=""):
 
     global counter
 
@@ -90,7 +97,7 @@ def findPlayers(campo, image,svm_classifier,creating_dataset=False):
 
             if creating_dataset :
                 if w <= h/2:
-                        cv2.imwrite(f"img_players/masked_image{counter}.png", masked_image)
+                        cv2.imwrite(f"datasets/{directory_name}/masked_image{counter}.png", masked_image)
                         counter = counter + 1
                 continue
 
@@ -119,3 +126,32 @@ def deforma_immagine(img, punti):
     img_deformata = cv2.warpPerspective(img, matrix_trasformazione, (larghezza, altezza))
 
     return img_deformata
+
+def plot_decision_surface(X, Y, clf):
+    """Print the decision surface of a trained sklearn classifier"""
+
+    fig, ax = plt.subplots()
+    X0, X1 = X[:, 0], X[:, 1]
+    xx, yy = make_meshgrid(X0, X1)
+
+    colors = ["orange" if y == 1 else "blue" for y in Y]
+
+    plot_contours(ax, clf, xx, yy, cmap=plt.cm.coolwarm, alpha=0.5)
+    ax.scatter(X0, X1, c=colors, cmap=plt.cm.coolwarm, s=20)
+    ax.set_ylabel('$x_0$')
+    ax.set_xlabel('$x_1$')
+    ax.set_title('Decision surface of the classifier')
+    plt.show()
+
+def plot_contours(ax, clf, xx, yy, **params):
+    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+    out = ax.contourf(xx, yy, Z, **params)
+    return out
+
+def make_meshgrid(x, y, h=.1):
+    x_min, x_max = x.min() - 1, x.max() + 1
+    y_min, y_max = y.min() - 1, y.max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                         np.arange(y_min, y_max, h))
+    return xx, yy
