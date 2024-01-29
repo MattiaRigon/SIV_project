@@ -2,6 +2,7 @@ import time
 import cv2
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from populate_soccer_field import populate_soccer_field
 from unsupervised_training import unsupervised_clustering
 from utils import *
 
@@ -10,14 +11,22 @@ import os
 
 
 if __name__ == "__main__":
+    
+    soccer_field = cv2.imread("soccer-field.jpg")
+    # show_image(soccer_field)
 
     nome_file = "/cagliari-chievo/2h-left-5min.avi"
     dataset_directory = f"datasets/{nome_file.replace('.avi','')}"
 
     if not os.path.exists(dataset_directory):
         os.makedirs(dataset_directory)
-        generate_photo_dataset(nome_file,50)
+        fixed_points = generate_photo_dataset(nome_file,50)
         unsupervised_clustering(nome_file)
+    else:
+        fixed_points = cv2.imread(f"{dataset_directory}/fixed_points.png")
+        fixed_points_gray = cv2.cvtColor(fixed_points, cv2.COLOR_BGR2GRAY)
+        _, fixed_points = cv2.threshold(fixed_points_gray, 0, 255, cv2.THRESH_BINARY)
+    
     vidcap = cv2.VideoCapture(f"video_input/{nome_file}")
     success, image = vidcap.read()
     count = 0
@@ -71,30 +80,34 @@ if __name__ == "__main__":
 
         start_time = time.time()
 
-        eroded_image, image = preprocess(image)
+        eroded_image, image = preprocess(image,fixed_points)
 
-        # show_image(image)
+        # show_image(eroded_image)
         
-        findPlayers(eroded_image, image,svm_classifier)
+        soccer_players = findPlayers(eroded_image, image,svm_classifier)
 
         altezza, larghezza = image.shape[:2]
 
-        # Specifica i 4 punti per deformare l'immagine (in alto a sinistra, in alto a destra, in basso a sinistra, in basso a destra)
+        # # Specifica i 4 punti per deformare l'immagine (in alto a sinistra, in alto a destra, in basso a sinistra, in basso a destra)
         pts = [[1018, 263], [1731, 246],[257, 540], [1732, 643]]
-        # i =0 
-        # for pt in pts:
-        #     cv2.circle(image, tuple(pt), 5, (0, 0, 255), -1)
-        #     cv2.putText(image, str(i), (pt[0] + 10, pt[1] + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        #     i = i+1
+        # # i =0 
+        # # for pt in pts:
+        # #     cv2.circle(image, tuple(pt), 5, (0, 0, 255), -1)
+        # #     cv2.putText(image, str(i), (pt[0] + 10, pt[1] + 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        # #     i = i+1
 
-        show_image(image)
+        # show_image(image)
 
-        # Deforma l'immagine basata sui 4 punti specificati
+        # # Deforma l'immagine basata sui 4 punti specificati
 
-        # img_deformata = deforma_immagine(image, pts)
+        transformed_img = deforma_immagine(image, pts, soccer_players)
+        # soccer_field_points = np.array([[96, 49], [952, 49], [96, 649], [952, 649]], np.int32)
+        soccer_field_offset = { "x" : 96 , "y": 49 }
 
-        # show_image(img_deformata)
+        soccer_field_populated = populate_soccer_field(soccer_field, transformed_img,soccer_players, soccer_field_offset)
 
+        # show_image(transformed_img)
+        # show_image(soccer_field_populated)
 
         end_time = time.time()
         fps = 1 / (end_time-start_time)

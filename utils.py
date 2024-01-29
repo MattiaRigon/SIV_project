@@ -3,8 +3,9 @@ import numpy as np
 from classification import predict 
 import random
 import matplotlib
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 
+from player import Player 
 matplotlib.use("TkAgg")
 
 
@@ -24,6 +25,8 @@ def show_image(output_img):
 def generate_photo_dataset(nome_file,n):
 
     vidcap = cv2.VideoCapture(f"video_input/{nome_file}")
+    fixed_points = np.zeros((1080, 2048), dtype=np.int32)
+    processed_images = []
 
     frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
     random_indices = random.sample(range(0, frame_count), n)
@@ -38,13 +41,26 @@ def generate_photo_dataset(nome_file,n):
 
     for frame in frames:
         eroded_image, image = preprocess(frame)
+        fixed_points = fixed_points + eroded_image
+        processed_images.append([eroded_image,image])
+
+    fixed_points = np.where(fixed_points > len(fixed_points)-1, 255, 0).astype(np.uint8)
+    fixed_points_img_name = str(nome_file).replace(".avi","")+ "/fixed_points.png"
+    
+    cv2.imwrite(f"datasets{fixed_points_img_name}",fixed_points)
+    for eroded_image, image in processed_images:
+        eroded_image = eroded_image - fixed_points
+        eroded_image = np.where(eroded_image == 255, 255, 0).astype(np.uint8)
         findPlayers(eroded_image, image,None,creating_dataset=True,directory_name=nome_file.replace('.avi',''))
+
 
     vidcap.release()
 
+    return fixed_points
 
-def preprocess(image):
-        
+
+def preprocess(image,fixed_points=[]):
+                
         new_dimension = (2048, 1080)
         image = cv2.resize(image, new_dimension)
 
@@ -65,6 +81,10 @@ def preprocess(image):
         gray_image = cv2.cvtColor(inverse_image_hist, cv2.COLOR_BGR2GRAY)
         _, binary_image = cv2.threshold(gray_image, 1, 255, cv2.THRESH_BINARY)
 
+        if len(fixed_points) != 0 :
+            binary_image = binary_image - fixed_points
+            binary_image = np.where(binary_image == 255, 255, 0).astype(np.uint8)
+
         dilated_image = cv2.dilate(binary_image, None, iterations=1)
         eroded_image = cv2.erode(dilated_image, None, iterations=1)
 
@@ -84,9 +104,8 @@ def deleteBackground(image):
 def findPlayers(campo, image,svm_classifier,creating_dataset=False,directory_name=""):
 
     global counter
-
     contours, hierarchy = cv2.findContours(campo, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )
-
+    soccer_players : list[Player] = []
     for c in contours:
         x, y, w, h = cv2.boundingRect(c)
         area = cv2.contourArea(c)
@@ -94,7 +113,7 @@ def findPlayers(campo, image,svm_classifier,creating_dataset=False,directory_nam
             player_img = image[y : y + h, x : x + w]
             binary_player_img = campo[y : y + h, x : x + w]
             masked_image = cv2.bitwise_and(player_img, player_img, mask=binary_player_img)
-
+            position = np.array([x + w/2,y + h/2])
             if creating_dataset :
                 if w <= h/2:
                         cv2.imwrite(f"datasets/{directory_name}/masked_image{counter}.png", masked_image)
@@ -102,7 +121,8 @@ def findPlayers(campo, image,svm_classifier,creating_dataset=False,directory_nam
                 continue
 
             label = predict(svm_classifier,masked_image)
-
+            player = Player(label,position)
+            soccer_players.append(player)
             if label == [0]:
                 cv2.rectangle(image, (x, y), (x + w, y + h),  (255, 0, 0), 2)
             elif label == [1] :
@@ -116,14 +136,25 @@ def findPlayers(campo, image,svm_classifier,creating_dataset=False,directory_nam
             elif label == [5]:
                 cv2.rectangle(image, (x, y), (x + w, y + h),  (255, 0, 0), 2)
 
+    return soccer_players
 
-def deforma_immagine(img, punti):
+
+
+def deforma_immagine(img, punti,soccer_players):
 
     altezza, larghezza = img.shape[:2]
     punti_iniziali = np.float32(punti)
     punti_finali = np.float32([[0, 0], [larghezza, 0], [0, altezza], [larghezza, altezza]])
-    matrix_trasformazione = cv2.getPerspectiveTransform(punti_iniziali, punti_finali)
-    img_deformata = cv2.warpPerspective(img, matrix_trasformazione, (larghezza, altezza))
+    transform_matrix = cv2.getPerspectiveTransform(punti_iniziali, punti_finali)
+    img_deformata = cv2.warpPerspective(img, transform_matrix, (larghezza, altezza))
+
+    for player in soccer_players:
+        x_input, y_input = player.image_position
+        point_input = np.array([x_input, y_input, 1])
+        point_output_homogeneous = np.dot(transform_matrix, point_input)
+        point_output = point_output_homogeneous[:2] / point_output_homogeneous[2]
+        x_output, y_output = point_output
+        player.transformed_position = np.array([x_output, y_output])
 
     return img_deformata
 
