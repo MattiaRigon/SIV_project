@@ -22,7 +22,7 @@ def show_image(output_img):
 		if key == ord('q') or cv2.getWindowProperty("Output Image", cv2.WND_PROP_VISIBLE) < 1:
 			break
 
-def generate_photo_dataset(nome_file,n):
+def generate_photo_dataset(nome_file,n,pts):
 
     vidcap = cv2.VideoCapture(f"video_input/{nome_file}")
     fixed_points = np.zeros((1080, 2048), dtype=np.int32)
@@ -40,7 +40,7 @@ def generate_photo_dataset(nome_file,n):
             print(f"Error reading the frame {idx}")
 
     for frame in frames:
-        eroded_image, image = preprocess(frame)
+        eroded_image, image = preprocess(frame,pts)
         fixed_points = fixed_points + eroded_image
         processed_images.append([eroded_image,image])
 
@@ -59,12 +59,16 @@ def generate_photo_dataset(nome_file,n):
     return fixed_points
 
 
-def preprocess(image,fixed_points=[]):
+def preprocess(image,pts,fixed_points=[]):
                 
         new_dimension = (2048, 1080)
         image = cv2.resize(image, new_dimension)
 
-        pts = np.array([[257, 540], [1018, 263], [1731, 246], [1732, 643]], np.int32)
+        # pts = np.array([[257, 540], [1018, 263], [1731, 246], [1732, 643]], np.int32)
+        # pts = np.array([[327, 254], [1042, 289], [1801, 571], [316, 645]], np.int32)
+
+
+        pts = np.array(pts, np.int32)
         pts = pts.reshape((-1, 1, 2))
         mask = np.zeros((1080, 2048), dtype=np.uint8)  # Creazione di un'immagine vuota per la maschera
         cv2.fillPoly(mask, [pts], 255)  # Disegna il poligono sulla maschera
@@ -72,7 +76,6 @@ def preprocess(image,fixed_points=[]):
         image = cv2.bitwise_and(image, image, mask=mask)
         mask = deleteBackground(image=image)
         masked_image = cv2.bitwise_and(image, image, mask=mask)
-
         lower = np.array([100, 0, 0])
         upper = np.array([180, 255, 255])
         mask_hist = cv2.inRange(masked_image, lower, upper)
@@ -124,11 +127,11 @@ def findPlayers(campo, image,svm_classifier,creating_dataset=False,directory_nam
             player = Player(label,position)
             soccer_players.append(player)
             if label == [0]:
-                cv2.rectangle(image, (x, y), (x + w, y + h),  (255, 0, 0), 2)
+                cv2.rectangle(image, (x, y), (x + w, y + h),  (0, 255, 0), 2)
             elif label == [1] :
                 cv2.rectangle(image, (x, y), (x + w, y + h),  (0, 0, 255), 2)
             elif label == [2]:
-                cv2.rectangle(image, (x, y), (x + w, y + h),  (0, 255, 0), 2)
+                cv2.rectangle(image, (x, y), (x + w, y + h),  (255, 0, 0), 2)
             elif label == [3]:
                 cv2.rectangle(image, (x, y), (x + w, y + h),  (255, 255, 255), 2)
             elif label == [4]:

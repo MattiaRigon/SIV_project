@@ -1,0 +1,16 @@
+
+import numpy as np
+
+SCALED_DIMENSION = (2048, 1080)
+
+POINTS_LEFT_TRANSFORMATION = [[1018, 263], [1731, 246],[257, 540], [1732, 643]]
+# POINTS_RIGHT = [[327, 254], [1042, 289], [1801, 571], [316, 645]]
+POINTS_RIGHT_TRANSFORMATION = [[327, 254],[1042, 289],[316, 645],[1801, 571]]
+
+POINTS_LEFT_CUT = np.array([[257, 540], [1018, 263], [1731, 246], [1732, 643]], np.int32)
+POINTS_RIGHT_CUT = np.array([[327, 254], [1042, 289], [1801, 571], [316, 645]], np.int32)
+
+FIRST_LOWER = np.array([100, 0, 0])
+FIRST_UPPER = np.array([180, 255, 255])
+
+SOCCER_FIELD_OFFSET = { "x" : 96 , "y": 49 }
