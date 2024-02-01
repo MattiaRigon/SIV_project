@@ -13,8 +13,8 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 
 counter = 0
 
-def show_image(output_img):
-	cv2.imshow("Output Image", output_img.astype(np.uint8))
+def show_image(output_img,name = ""):
+	cv2.imshow(f"Output Image {name}", output_img.astype(np.uint8))
 	while True:
 		key = cv2.waitKey(1) & 0xFF
 

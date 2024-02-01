@@ -64,11 +64,11 @@ class SoccerField():
             # Resize heatmap to match the original image size
             heatmap_resized = cv2.resize(heatmap, (heatmap_image.shape[1], heatmap_image.shape[0]))
 
-            show_image(heatmap_resized)
+            # show_image(heatmap_resized)
             # Combine the original image and the heatmap
             result = cv2.addWeighted(heatmap_image, 0.7, heatmap_resized, 0.3, 0)
 
-            show_image(result)
+            # show_image(result)
 
             # show_image(result)
 

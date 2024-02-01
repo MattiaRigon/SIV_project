@@ -1,3 +1,4 @@
+import threading
 import time
 import cv2
 import numpy as np
@@ -10,12 +11,10 @@ import os
 from settings import *
 
 
-if __name__ == "__main__":
-    
-    soccer_field = SoccerField(cv2.imread("soccer-field.jpg"))
-    # show_image(soccer_field_img)
+def main(nome_file):
 
-    nome_file = "/cagliari-chievo/2h-right-5min.avi"
+    i = 1
+    # nome_file = "/cagliari-chievo/2h-right-5min.avi"
     dataset_directory = f"datasets/{nome_file.replace('.avi','')}"
 
     if 'left' in nome_file:
@@ -74,36 +73,43 @@ if __name__ == "__main__":
     svm_classifier.fit(X_train, y_train)
 
     # Read the video frame by frame
-    while success:
+    while success: 
 
         start_time = time.time()
 
-        eroded_image, image = preprocess(image,pts_cut,fixed_points)
-
-        # show_image(eroded_image)
-        
+        eroded_image, image = preprocess(image,pts_cut,fixed_points)        
         soccer_players = findPlayers(eroded_image, image,svm_classifier)
-
-        # # Specifica i 4 punti per deformare l'immagine (in alto a sinistra, in alto a destra, in basso a sinistra, in basso a destra)
-
-
-        show_image(image)
-        # # Deforma l'immagine basata sui 4 punti specificati
-
+        # show_image(image)
         transformed_img = deforma_immagine(image, pts_transformed, soccer_players)
         # show_image(transformed_img)
-        # soccer_field_offset = { "x" : 96 , "y": 49 }
 
         soccer_field_populated = populate_soccer_field(soccer_field, transformed_img,soccer_players, SOCCER_FIELD_OFFSET,isLeft)
-
-        # # show_image(transformed_img)
         # show_image(soccer_field_populated)
-        # heatmaps = soccer_field.generate_heatmaps()
-
 
         end_time = time.time()
         fps = 1 / (end_time-start_time)
 
         print(f"{fps:.2f} FPS")        
         success, image = vidcap.read()
+
+
+
+
+if __name__ == "__main__":
+    
+    soccer_field = SoccerField(cv2.imread("soccer-field.jpg"))
+    files = ["/cagliari-chievo/2h-left-5min.avi","/cagliari-chievo/2h-right-5min.avi"]
+
+    thread1 = threading.Thread(target=main,args=(files[0],))
+    thread2 = threading.Thread(target=main,args=(files[1],))
+    
+    thread1.start()
+    thread2.start()
+
+    thread1.join()
+    thread2.join()
+
+    soccer_field.generate_heatmaps()
+
+    
 
