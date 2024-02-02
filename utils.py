@@ -14,7 +14,7 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 counter = 0
 
 def show_image(output_img,name = ""):
-	cv2.imshow(f"Output Image {name}", output_img.astype(np.uint8))
+	cv2.imshow("Output Image", output_img.astype(np.uint8))
 	while True:
 		key = cv2.waitKey(1) & 0xFF
 
@@ -42,9 +42,10 @@ def generate_photo_dataset(nome_file,n,pts):
     for frame in frames:
         eroded_image, image = preprocess(frame,pts)
         fixed_points = fixed_points + eroded_image
+
         processed_images.append([eroded_image,image])
 
-    fixed_points = np.where(fixed_points > len(fixed_points)-1, 255, 0).astype(np.uint8)
+    fixed_points = np.where(fixed_points > 255*(len(frames)-1)*0.8, 255, 0).astype(np.uint8)
     fixed_points_img_name = str(nome_file).replace(".avi","")+ "/fixed_points.png"
     
     cv2.imwrite(f"datasets{fixed_points_img_name}",fixed_points)
@@ -64,18 +65,14 @@ def preprocess(image,pts,fixed_points=[]):
         new_dimension = (2048, 1080)
         image = cv2.resize(image, new_dimension)
 
-        # pts = np.array([[257, 540], [1018, 263], [1731, 246], [1732, 643]], np.int32)
-        # pts = np.array([[327, 254], [1042, 289], [1801, 571], [316, 645]], np.int32)
-
-
         pts = np.array(pts, np.int32)
         pts = pts.reshape((-1, 1, 2))
         mask = np.zeros((1080, 2048), dtype=np.uint8)  # Creazione di un'immagine vuota per la maschera
         cv2.fillPoly(mask, [pts], 255)  # Disegna il poligono sulla maschera
 
-        image = cv2.bitwise_and(image, image, mask=mask)
-        mask = deleteBackground(image=image)
-        masked_image = cv2.bitwise_and(image, image, mask=mask)
+        _image = cv2.bitwise_and(image, image, mask=mask)
+        mask = deleteBackground(_image)
+        masked_image = cv2.bitwise_and(_image, _image, mask=mask)
         lower = np.array([100, 0, 0])
         upper = np.array([180, 255, 255])
         mask_hist = cv2.inRange(masked_image, lower, upper)
