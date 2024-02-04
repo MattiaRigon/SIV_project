@@ -79,9 +79,7 @@ if __name__ == "__main__":
         start_time = time.time()
         eroded_image, image = preprocess(image,pts_cut,fixed_points)        
         soccer_players = findPlayers(eroded_image, image,svm_classifier)
-
         show_image(image)
-
         transformed_img = deforma_immagine(image, pts_transformed, soccer_players)
         soccer_field_populated = populate_soccer_field(soccer_field, transformed_img,soccer_players, SOCCER_FIELD_OFFSET,isLeft)
 

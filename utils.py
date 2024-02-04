@@ -45,7 +45,7 @@ def generate_photo_dataset(nome_file,n,pts):
 
         processed_images.append([eroded_image,image])
 
-    fixed_points = np.where(fixed_points > 255*(len(frames)-1)*0.8, 255, 0).astype(np.uint8)
+    fixed_points = np.where(fixed_points > 255*(len(frames)-1)*0.7, 255, 0).astype(np.uint8)
     fixed_points_img_name = str(nome_file).replace(".avi","")+ "/fixed_points.png"
     
     cv2.imwrite(f"datasets{fixed_points_img_name}",fixed_points)

@@ -23,7 +23,6 @@ class SoccerField():
     def update(self,player:Player):
         x,y = int(player.soccer_field_position[1]),int(player.soccer_field_position[0])
         squad = player.squad[0]-1
-
         for i in range(-10,10):
             for j in range(-10,10):
                 if i == 0 and j == 0:
