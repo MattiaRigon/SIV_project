@@ -4,6 +4,16 @@ from player import Player
 from utils import show_image
 
 def remove_outliers(matrix, threshold=3):
+    """
+    Removes outliers from a matrix based on a given threshold.
+
+    Parameters:
+    matrix (numpy.ndarray): The input matrix.
+    threshold (float): The number of standard deviations away from the mean to consider as an outlier. Default is 3.
+
+    Returns:
+    numpy.ndarray: The cleaned matrix with outliers removed.
+    """
     mean = np.mean(matrix)
     std = np.std(matrix)
     cleaned_matrix = np.clip(matrix, mean - threshold * std, mean + threshold * std)
@@ -11,6 +21,23 @@ def remove_outliers(matrix, threshold=3):
 
 
 class SoccerField():
+
+    """
+    Represents a soccer field and provides methods for updating and generating heatmaps.
+
+    Attributes:
+        image (numpy.ndarray): The image of the soccer field.
+        x (int): The width of the soccer field.
+        y (int): The height of the soccer field.
+        field (numpy.ndarray): The matrix representing the soccer field, one for each squad.
+
+    Methods:
+        __init__(self, image): Initializes a SoccerField object.
+        update(self, player): Updates the soccer field based on the player's position.
+        get_maps(self): Returns the individual heatmaps for each squad.
+        generate_heatmaps(self): Generates heatmaps based on the field matrix.
+    """
+    
 
     # defines the dimension of the soccer field and create a matrix for each squad x * y
     def __init__(self,image) -> None:
@@ -53,22 +80,11 @@ class SoccerField():
 
             # Normalize the matrix values to [0, 255]
             normalized_matrix = cv2.normalize(matrix, None, 0, 255, cv2.NORM_MINMAX)
-
-            # Create a color map (you can choose a different one if needed)
             heatmap_color_map = cv2.COLORMAP_JET
-
             # Apply the color map to the normalized matrix
             heatmap = cv2.applyColorMap(normalized_matrix.astype(np.uint8), heatmap_color_map)
-
             # Resize heatmap to match the original image size
             heatmap_resized = cv2.resize(heatmap, (heatmap_image.shape[1], heatmap_image.shape[0]))
-
-            # show_image(heatmap_resized)
             # Combine the original image and the heatmap
             result = cv2.addWeighted(heatmap_image, 0.7, heatmap_resized, 0.3, 0)
-
-            # show_image(result)
-
-            # show_image(result)
-
             cv2.imwrite(f"heatmap{i}.jpg", result)

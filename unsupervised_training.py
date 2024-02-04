@@ -32,6 +32,17 @@ def leggi_immagini_cartella(path_cartella):
     return elenco_immagini,elenco_hist
 
 def unsupervised_clustering(nome_file):
+
+    """
+    Perform unsupervised clustering on a set of images.
+
+    Args:
+        nome_file (str): The name of the file.
+
+    Returns:
+        None
+    """
+
     images,histograms = leggi_immagini_cartella(f"datasets/{nome_file.replace('.avi','')}")
     histograms = np.array(histograms)
     num_clusters = 2

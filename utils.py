@@ -14,15 +14,44 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 counter = 0
 
 def show_image(output_img,name = ""):
-	cv2.imshow("Output Image", output_img.astype(np.uint8))
-	while True:
-		key = cv2.waitKey(1) & 0xFF
+    """
+    Display the output image in a window.
 
-		# Break the loop if the 'q' key is pressed or the window is closed
-		if key == ord('q') or cv2.getWindowProperty("Output Image", cv2.WND_PROP_VISIBLE) < 1:
-			break
+    Parameters:
+    - output_img: numpy.ndarray
+        The output image to be displayed.
+    - name: str, optional
+        The name of the window. Default is an empty string.
+
+    Returns:
+    None
+
+    """
+
+    cv2.imshow("Output Image", output_img.astype(np.uint8))
+    while True:
+        key = cv2.waitKey(1) & 0xFF
+
+        # Break the loop if the 'q' key is pressed or the window is closed
+        if key == ord('q') or cv2.getWindowProperty("Output Image", cv2.WND_PROP_VISIBLE) < 1:
+            break
 
 def generate_photo_dataset(nome_file,n,pts):
+    
+    """
+    Generate a photo dataset from a video file.
+
+    Args:
+        nome_file (str): The name of the video file.
+        n (int): The number of frames to sample from the video.
+        pts (list): The list of points for preprocessing.
+
+    Returns:
+        numpy.ndarray: The fixed points image.
+
+    Raises:
+        None
+    """
 
     vidcap = cv2.VideoCapture(f"video_input/{nome_file}")
     fixed_points = np.zeros((1080, 2048), dtype=np.int32)
@@ -61,36 +90,60 @@ def generate_photo_dataset(nome_file,n,pts):
 
 
 def preprocess(image,pts,fixed_points=[]):
+
+    """
+    Preprocesses an image by resizing it, creating a mask based on given points, 
+    applying bitwise operations, converting to grayscale, and performing dilation and erosion.
+
+    Args:
+        image (numpy.ndarray): The input image.
+        pts (list): List of points to create a polygon mask.
+        fixed_points (list, optional): List of fixed points to subtract from the mask. Defaults to [].
+
+    Returns:
+        tuple: A tuple containing the eroded image and the original image.
+    """
                 
-        new_dimension = (2048, 1080)
-        image = cv2.resize(image, new_dimension)
+    new_dimension = (2048, 1080)
+    image = cv2.resize(image, new_dimension)
 
-        pts = np.array(pts, np.int32)
-        pts = pts.reshape((-1, 1, 2))
-        mask = np.zeros((1080, 2048), dtype=np.uint8)  # Creazione di un'immagine vuota per la maschera
-        cv2.fillPoly(mask, [pts], 255)  # Disegna il poligono sulla maschera
+    pts = np.array(pts, np.int32)
+    pts = pts.reshape((-1, 1, 2))
+    mask = np.zeros((1080, 2048), dtype=np.uint8)  # Creazione di un'immagine vuota per la maschera
+    cv2.fillPoly(mask, [pts], 255)  # Disegna il poligono sulla maschera
 
-        _image = cv2.bitwise_and(image, image, mask=mask)
-        mask = deleteBackground(_image)
-        masked_image = cv2.bitwise_and(_image, _image, mask=mask)
-        lower = np.array([100, 0, 0])
-        upper = np.array([180, 255, 255])
-        mask_hist = cv2.inRange(masked_image, lower, upper)
-        inverse_mask_hist = cv2.bitwise_not(mask_hist)  # Create inverse mask
-        inverse_image_hist = cv2.bitwise_and(masked_image, masked_image, mask=inverse_mask_hist)
-        gray_image = cv2.cvtColor(inverse_image_hist, cv2.COLOR_BGR2GRAY)
-        _, binary_image = cv2.threshold(gray_image, 1, 255, cv2.THRESH_BINARY)
+    _image = cv2.bitwise_and(image, image, mask=mask)
+    mask = deleteBackground(_image)
+    masked_image = cv2.bitwise_and(_image, _image, mask=mask)
+    lower = np.array([100, 0, 0])
+    upper = np.array([180, 255, 255])
+    mask_hist = cv2.inRange(masked_image, lower, upper)
+    inverse_mask_hist = cv2.bitwise_not(mask_hist)  # Create inverse mask
+    inverse_image_hist = cv2.bitwise_and(masked_image, masked_image, mask=inverse_mask_hist)
+    gray_image = cv2.cvtColor(inverse_image_hist, cv2.COLOR_BGR2GRAY)
+    _, binary_image = cv2.threshold(gray_image, 1, 255, cv2.THRESH_BINARY)
 
-        if len(fixed_points) != 0 :
-            binary_image = binary_image - fixed_points
-            binary_image = np.where(binary_image == 255, 255, 0).astype(np.uint8)
+    if len(fixed_points) != 0 :
+        binary_image = binary_image - fixed_points
+        binary_image = np.where(binary_image == 255, 255, 0).astype(np.uint8)
 
-        dilated_image = cv2.dilate(binary_image, None, iterations=1)
-        eroded_image = cv2.erode(dilated_image, None, iterations=1)
+    dilated_image = cv2.dilate(binary_image, None, iterations=1)
+    eroded_image = cv2.erode(dilated_image, None, iterations=1)
 
-        return eroded_image, image
+    return eroded_image, image
 
 def deleteBackground(image):
+
+    """
+    Deletes the background of an image by converting it to HSV, creating a mask based on the green color,
+    and applying bitwise operations.
+
+    Args:
+        image (numpy.ndarray): The input image.
+
+    Returns:
+        numpy.ndarray: The mask of the image.
+    """
 
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_green = np.array([35, 100, 100])
@@ -102,6 +155,20 @@ def deleteBackground(image):
     return thresholded_image
 
 def findPlayers(campo, image,svm_classifier,creating_dataset=False,directory_name=""):
+
+    """
+    Finds the soccer players in the image by detecting contours and creating a mask.
+
+    Args:
+        campo (numpy.ndarray): The input image.
+        image (numpy.ndarray): The input image.
+        svm_classifier (object): The SVM classifier.
+        creating_dataset (bool, optional): Whether to create a dataset. Defaults to False.
+        directory_name (str, optional): The name of the directory. Defaults to "".
+    
+    Returns:
+        list: A list of soccer players.
+    """
 
     global counter
     contours, hierarchy = cv2.findContours(campo, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )
@@ -142,6 +209,18 @@ def findPlayers(campo, image,svm_classifier,creating_dataset=False,directory_nam
 
 def deforma_immagine(img, punti,soccer_players):
 
+    """
+    Deforms the image based on the given points and updates the position of the soccer players.
+
+    Args:
+        img (numpy.ndarray): The input image.
+        punti (list): The list of points.
+        soccer_players (list): The list of soccer players.
+    
+    Returns:
+        numpy.ndarray: The deformed image.
+    """
+
     altezza, larghezza = img.shape[:2]
     punti_iniziali = np.float32(punti)
     punti_finali = np.float32([[0, 0], [larghezza, 0], [0, altezza], [larghezza, altezza]])
@@ -158,31 +237,3 @@ def deforma_immagine(img, punti,soccer_players):
 
     return img_deformata
 
-def plot_decision_surface(X, Y, clf):
-    """Print the decision surface of a trained sklearn classifier"""
-
-    fig, ax = plt.subplots()
-    X0, X1 = X[:, 0], X[:, 1]
-    xx, yy = make_meshgrid(X0, X1)
-
-    colors = ["orange" if y == 1 else "blue" for y in Y]
-
-    plot_contours(ax, clf, xx, yy, cmap=plt.cm.coolwarm, alpha=0.5)
-    ax.scatter(X0, X1, c=colors, cmap=plt.cm.coolwarm, s=20)
-    ax.set_ylabel('$x_0$')
-    ax.set_xlabel('$x_1$')
-    ax.set_title('Decision surface of the classifier')
-    plt.show()
-
-def plot_contours(ax, clf, xx, yy, **params):
-    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
-    Z = Z.reshape(xx.shape)
-    out = ax.contourf(xx, yy, Z, **params)
-    return out
-
-def make_meshgrid(x, y, h=.1):
-    x_min, x_max = x.min() - 1, x.max() + 1
-    y_min, y_max = y.min() - 1, y.max() + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                         np.arange(y_min, y_max, h))
-    return xx, yy

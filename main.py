@@ -13,8 +13,6 @@ from settings import *
 if __name__ == "__main__":
     
     soccer_field = SoccerField(cv2.imread("soccer-field.jpg"))
-    # show_image(soccer_field_img)
-
     nome_file = "/cagliari-chievo/2h-right-5min.avi"
     dataset_directory = f"datasets/{nome_file.replace('.avi','')}"
 
@@ -54,22 +52,10 @@ if __name__ == "__main__":
 
     H, S, V = calcola_istogrammi(dataset_images)
 
-    weight_H = 1  # Peso assegnato a X1_train
-    weight_S = 1  # Peso assegnato a X2_train
-    weight_V = 1  # Peso assegnato a X3_train
+    combined_weighted_features_train = np.hstack((H, S, V))
 
-    # Moltiplicazione delle caratteristiche per i pesi assegnati
-    weighted_X1_train = H * weight_H
-    weighted_X2_train = S * weight_S
-    weighted_X3_train = V * weight_V
-
-    # # # Combinazione delle caratteristiche pesate
-    combined_weighted_features_train = np.hstack((weighted_X1_train, weighted_X2_train, weighted_X3_train))
-
-    # Dividi il dataset in set di addestramento e test
     X_train, X_test, y_train, y_test = train_test_split(combined_weighted_features_train, labels, test_size=0.2, random_state=42)
 
-    # Addestramento del classificatore SVM
     svm_classifier = SVC(kernel='linear',C=1/len(dataset_images), random_state=42)
     svm_classifier.fit(X_train, y_train)
 
@@ -83,9 +69,7 @@ if __name__ == "__main__":
         transformed_img = deforma_immagine(image, pts_transformed, soccer_players)
         soccer_field_populated = populate_soccer_field(soccer_field, transformed_img,soccer_players, SOCCER_FIELD_OFFSET,isLeft)
 
-        # # show_image(transformed_img)
         show_image(soccer_field_populated)
-        # heatmaps = soccer_field.generate_heatmaps()
 
 
         end_time = time.time()

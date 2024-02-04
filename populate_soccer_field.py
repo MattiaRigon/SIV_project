@@ -3,7 +3,19 @@ import numpy as np
 import cv2
 
 def populate_soccer_field(soccer_field:SoccerField, transformed_img,soccer_players, soccer_field_offset,isLeft:bool):
+    """
+    Populates the soccer field image with the positions of the soccer players.
 
+    Parameters:
+    soccer_field (SoccerField): The soccer field object.
+    transformed_img (numpy.ndarray): The transformed image.
+    soccer_players (list): List of soccer player objects.
+    soccer_field_offset (dict): Dictionary containing the offset values for the soccer field.
+    isLeft (bool): Flag indicating whether the players are on the left side of the field.
+
+    Returns:
+    numpy.ndarray: The soccer field image with the player positions marked.
+    """
     soccer_field_copy = soccer_field.image.copy()
 
     for player in soccer_players:

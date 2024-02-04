@@ -11,72 +11,17 @@ import matplotlib
 
 matplotlib.use('TkAgg')
 
-def trova_intervalli_non_consecutivi(array):
-    intervals = []
-    start = array[0]
-    end = array[0]
-
-    for i in range(1, len(array)):
-        if array[i] - array[i - 1] != 1:
-            end = array[i - 1]
-            if start != end:
-                intervals.append((start, end))
-            start = array[i]
-    
-    if start != array[-1]:
-        intervals.append((start, array[-1]))
-
-    return intervals
-
-
-
-def plot_major_colors(histogram_h, histogram_s, histogram_v):
-    # Trova i valori H più alti nell'istogramma
-    num_colors = 5  # Numero di colori da plottare
-    major_indices = np.argsort(histogram_h)[::-1][:num_colors]  # Ottieni gli indici dei valori H più alti
-    colors = []  # Lista per salvare i colori corrispondenti ai valori HSV
-
-    # Converte gli indici H, S, V in colori RGB per il plot
-    for index in major_indices:
-        hue_value = index * (180 / len(histogram_h))  # Converti l'indice H in valore di tonalità (H)
-        sat_value = histogram_s[index] #/ max(histogram_s)  # Normalizza la saturazione (S)
-        val_value = histogram_v[index] #/ max(histogram_v)  # Normalizza il valore (V)
-        
-        rgb_color = hsv_to_rgb(hue_value, sat_value, val_value)  # Converti HSV in RGB
-        print(hue_value, sat_value, val_value, rgb_color)
-        colors.append(rgb_color)
-
-    # Plot dei colori ottenuti
-    plt.figure(figsize=(8, 2))
-    for i, color in enumerate(colors):
-        plt.subplot(1, num_colors, i+1)
-        plt.imshow([[color]], extent=[0, 1, 0, 1])
-        plt.axis('off')
-
-    plt.show()
-
-def hsv_to_rgb(h, s, v):
+def leggi_immagini_cartella(path_cartella):
     """
-    Converti da spazio colore HSV a spazio colore RGB utilizzando OpenCV.
+    Legge le immagini presenti nella cartella specificata e restituisce un elenco di immagini.
 
     Args:
-    - h (float): Valore di tonalità compreso tra 0 e 360.
-    - s (float): Valore di saturazione compreso tra 0 e 1.
-    - v (float): Valore di luminosità (o valore) compreso tra 0 e 1.
+        path_cartella (str): Il percorso della cartella contenente le immagini.
 
     Returns:
-    - tuple: Tupla contenente i valori RGB compresi tra 0 e 255.
+        list: Un elenco di immagini lette dalla cartella.
+
     """
-
-    # Creazione di un'immagine 1x1 con valore HSV specificato
-    hsv_color = np.array([[[h, s , v ]]], dtype=np.uint8)
-    # Conversione da HSV a RGB
-    rgb_color = cv2.cvtColor(hsv_color, cv2.COLOR_HSV2RGB)
-    # Estrai i valori RGB
-    r, g, b = rgb_color[0, 0, :]
-    return int(r), int(g), int(b)
-
-def leggi_immagini_cartella(path_cartella):
     elenco_immagini = []
     if not os.path.exists(path_cartella):
         print(f"Il percorso '{path_cartella}' non esiste.")
@@ -97,58 +42,21 @@ def leggi_immagini_cartella(path_cartella):
     
     return elenco_immagini
 
-def calculate_approximation(h_hist):
-
-    x = np.arange(len(h_hist))
-    degree = 10  # Grado del polinomio per la regressione
-    window_length = 100 # Lunghezza della finestra per il filtro Savitzky-Golay
-
-    # Applicazione del filtro Savitzky-Golay per la smoothing dei dati
-    smoothed = savgol_filter(h_hist, window_length, 3)  # '3' è il grado del polinomio
-
-    # Fit del polinomio ai dati smoothed
-    coefficients = np.polyfit(x, smoothed, degree)
-    polynomial = np.poly1d(coefficients)
-
-    # Generazione della stima usando il polinomio
-    approximation = polynomial(x)
-
-    # Trovare i massimi della funzione stimata
-    # Calcolare la derivata prima e seconda della funzione stimata
-    first_derivative = np.gradient(approximation)
-    second_derivative = np.gradient(first_derivative)
-
-    # Trovare gli indici in cui la derivata prima si annulla e la derivata seconda è negativa
-    maxima_indices = np.where((first_derivative[:-1] > 0) & (first_derivative[1:] < 0) & (second_derivative[1:] < 0))[0] + 1
-    maxima_indices =  np.append(maxima_indices, len(approximation) - 1)
-    maxima_indices = np.append(maxima_indices, 0)
-
-    maxima_values = approximation[maxima_indices]
-    
-    max = np.max(maxima_values)
-    threshold = 0.3 * max
-    above_threshold = np.where(approximation > threshold)[0]
-
-    intervals = trova_intervalli_non_consecutivi(above_threshold)
-
-    print(f"intervals :{intervals}")
-    # print(above_threshold)
-    # print(f"max: {maxima_indices}")
-    # print(maxima_values)
-    plt.plot(approximation)
-    plt.scatter(above_threshold, approximation[above_threshold], color='red', marker='o', label='Sopra soglia')
-    plt.scatter(maxima_indices, maxima_values, color='green', marker='o', label='Massimi')
-    plt.axhline(y=threshold, color='red', linestyle='--', label=f'Retta orizzontale a {threshold}')  # Traccia la retta orizzontale
-    plt.plot(h_hist.flatten())
-    plt.show()
-        # Trova gli indici dei massimi locali
-        
-    return approximation
-
 
 def calcola_istogrammi(images):
+    """
+    Calculate histograms for a list of images.
+
+    Parameters:
+    images (list): A list of input images.
+
+    Returns:
+    H (ndarray): Array of H channel histograms.
+    S (ndarray): Array of S channel histograms.
+    V (ndarray): Array of V channel histograms.
+    """
+
     H, S, V = [], [], []
-    hist_features = []
     for img in images:
 
         lower = np.array([100, 0, 0])
@@ -157,41 +65,33 @@ def calcola_istogrammi(images):
         
         inverse_mask_hist = cv2.bitwise_not(mask_hist)  # Create inverse mask
         inverse_image_hist = cv2.bitwise_and(img, img, mask=inverse_mask_hist)
-        # show_image(inverse_image_hist)
         hsv_img = cv2.cvtColor(inverse_image_hist, cv2.COLOR_BGR2HSV)
-        # show_image(hsv_img)
-        # show_image(inverse_image_hist)
+
         h_hist = cv2.calcHist([hsv_img], [0], None, [255], [1, 257])  # Calcola l'istogramma per il canale H (tonalità)
         s_hist = cv2.calcHist([hsv_img], [1], None, [255], [0, 256])  # Calcola l'istogramma per il canale S (saturazione)
         v_hist = cv2.calcHist([hsv_img], [2], None, [255], [0, 256])  # Calcola l'istogramma per il canale V (valore)
-
 
         cv2.normalize(h_hist, h_hist, 0, 255, cv2.NORM_MINMAX)
         cv2.normalize(s_hist, s_hist, 0, 255, cv2.NORM_MINMAX)
         cv2.normalize(v_hist, v_hist, 0, 255, cv2.NORM_MINMAX)
 
-
-
-        # Concatena gli istogrammi in un unico vettore di feature per l'immagine
         H.append(h_hist.flatten())
         S.append(s_hist.flatten())
         V.append(v_hist.flatten())
-        # for i in range(0,len(h_hist)):
-        #     hist = (h_hist[i][0],s_hist[i][0],v_hist[i][0])#,v_hist[i]]  
-        
-        # hist_features.append(hist)
-
-        # start_time = time.time()
-        # f = calculate_approximation(h_hist.flatten())
-        # hist_features.append(f)
-        # end_time = time.time()
-        # print(f"Tempo di esecuzione: {end_time - start_time}")
-
-        # plot_major_colors(h_hist.flatten(),s_hist.flatten(),v_hist.flatten())
-    
+ 
     return np.array(H), np.array(S), np.array(V)
 
-def predict(svm_classifier,image):
+def predict(svm_classifier, image):
+    """
+    Predicts the label of an image using a support vector machine classifier.
+
+    Args:
+        svm_classifier (object): The trained support vector machine classifier.
+        image (numpy.ndarray): The input image.
+
+    Returns:
+        int: The predicted label for the image.
+    """
     lower = np.array([100, 0, 0])
     upper = np.array([180, 255, 255])
     mask_hist = cv2.inRange(image, lower, upper)
@@ -199,7 +99,6 @@ def predict(svm_classifier,image):
     inverse_image_hist = cv2.bitwise_and(image, image, mask=inverse_mask_hist)
     hsv_img = cv2.cvtColor(inverse_image_hist, cv2.COLOR_BGR2HSV)
 
-    # show_image(hsv_img)
     h_hist = cv2.calcHist([hsv_img], [0], None, [255], [1, 257])  # Calcola l'istogramma per il canale H (tonalità)
     s_hist = cv2.calcHist([hsv_img], [1], None, [255], [0, 256])  # Calcola l'istogramma per il canale S (saturazione)
     v_hist = cv2.calcHist([hsv_img], [2], None, [255], [0, 256]) 
@@ -212,14 +111,10 @@ def predict(svm_classifier,image):
 
     predicted_label = svm_classifier.predict([hist])
     return predicted_label
-    # print(predicted_label)
-
-
 
 
 if __name__ == "__main__":
-    # Combina le immagini delle due cartelle
-    # path_s1 = "img_players/cluster0"
+
     path = "datasets/2h-left-5min"
     dataset_images = []
     labels = []
@@ -233,7 +128,6 @@ if __name__ == "__main__":
 
     H, S, V = calcola_istogrammi(dataset_images)
 
-        # Assegnazione dei pesi alle caratteristiche
     weight_H = 2  # Peso assegnato a X1_train
     weight_S = 1  # Peso assegnato a X2_train
     weight_V = 1  # Peso assegnato a X3_train
@@ -245,10 +139,6 @@ if __name__ == "__main__":
 
     # Combinazione delle caratteristiche pesate
     combined_weighted_features_train = np.hstack((weighted_X1_train, weighted_X2_train, weighted_X3_train))
-
-
-    # Genera gli istogrammi HSV dalle immagini
-    # histogram_features = calcola_istogrammi(dataset_images)
 
     # Dividi il dataset in set di addestramento e test
     X_train, X_test, y_train, y_test = train_test_split(combined_weighted_features_train, labels, test_size=0.2, random_state=42)
@@ -263,11 +153,3 @@ if __name__ == "__main__":
 
 
     print("Accuracy:", accuracy)
-
-    # for image in images_s1:z
-    #     predict(svm_classifier,image)
-    # for image in images_s2:
-    #     predict(svm_classifier,image)
-
-    # for image in images_test:
-    #     predict(svm_classifier,image)
