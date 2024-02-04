@@ -86,6 +86,8 @@ def main(nome_file):
         soccer_field_populated = populate_soccer_field(soccer_field, transformed_img,soccer_players, SOCCER_FIELD_OFFSET,isLeft)
         # show_image(soccer_field_populated)
 
+        # soccer_field.generate_heatmaps()
+
         end_time = time.time()
         fps = 1 / (end_time-start_time)
 
