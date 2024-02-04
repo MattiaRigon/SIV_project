@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 from player import Player
-from utils import show_image
 
 def remove_outliers(matrix, threshold=3):
     """

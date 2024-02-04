@@ -4,9 +4,7 @@ from sklearn.metrics import accuracy_score
 import cv2
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 from utils import *
-from scipy.signal import savgol_filter
 import matplotlib
 
 matplotlib.use('TkAgg')

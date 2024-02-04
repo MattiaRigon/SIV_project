@@ -3,7 +3,6 @@ import numpy as np
 from classification import predict 
 import random
 import matplotlib
-import matplotlib.pyplot as plt
 
 from player import Player 
 matplotlib.use("TkAgg")

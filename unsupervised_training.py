@@ -1,9 +1,7 @@
 import os
 import cv2
-from sklearn.cluster import DBSCAN, KMeans
+from sklearn.cluster import KMeans
 import numpy as np
-from sklearn.mixture import GaussianMixture
-from matplotlib import pyplot as plt
 
 def leggi_immagini_cartella(path_cartella):
     elenco_hist = []
