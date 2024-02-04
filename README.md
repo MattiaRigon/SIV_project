@@ -43,14 +43,14 @@ You can also create a subfolder.
         As for the main file the only change that you have to perform is change the name of the files inside the line:
 
             files = ["/cagliari-chievo/2h-left-5min.avi","/cagliari-chievo/2h-right-5min.avi"]
-
     
-    If you don't want to wait the end of the video in order to generate the heatmaps you have to place the line :
-
-    `soccer_field.generate_heatmaps()`
-     which is outside the function main inside the function main, just before the line         
-    `end_time = time.time()`
-
-    The code is already setup, just uncomment the first one and comment the second one.
+        
+        If you don't want to wait the end of the video in order to generate the heatmaps you have to place the line :
+    
+        `soccer_field.generate_heatmaps()`
+         which is outside the function main inside the function main, just before the line         
+        `end_time = time.time()`
+    
+        The code is already setup, just uncomment the first one and comment the second one.
 
     This setup will make decrease the performance of the analysis.
