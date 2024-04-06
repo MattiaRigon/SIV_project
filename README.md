@@ -1,6 +1,22 @@
 # Soccer players detection and team classification using histograms and SVM.
 
-The project has been developed and tested on Ubuntu 22. Inside settings.py there are some fixed value used in order to analyze the videos of the cagliari stadium given by the university. 
+You can find a fully description of the project [here](https://github.com/MattiaRigon/SIV_project/blob/main/Rigon_Mattia_SIV_Report.pdf).
+
+System overview:
+- Field Detection
+- Line and Stationary Item Detection
+- Soccer Player Detection and Classification
+- Player Position Mapping
+- Heatmaps for Team Analysis
+
+![](https://lh7-eu.googleusercontent.com/OESRTSZ1WDxXkA_XOvkspf5DqwL7myx2UCe9pbyvYi3Hca10Q7-7UPSGbQk0_WgIgvUcrcjmCFyssEMms0zVThjY8PczGYFYD5H2gLrsAmjtKpcZR6ORMmQ5qgd8jjdzRKIKU09-d4LqM5WjtKDv2tTrWw=s2048)
+
+![](https://lh7-eu.googleusercontent.com/dalkLLyA7pSBEhlqwDj8oN4y3DH52NMlgxtAOc1-oyGY2nPvr-gd7R2YR-yE-XUtfoxTbbbTQ1ykJ1ialQRcg1VCPa1ZPeadsqvM30aoZGUd65iQZlplBEDrlvNRejDoF0tirM5Z9Mmyo1UopuDXCqfuBw=s2048)
+
+
+### How to run the project
+
+The project has been developed and tested on Ubuntu 22. Inside settings.py there are some fixed value used in order to analyze the videos of the Cagliari stadium given by the university. 
 
 This project addresses the growing need for a comprehensive system that leverages image and video processing techniques to analyze soccer matches efficiently. More in detail has been developed a software which is able to perform player detection, team classification and calculate the position of each player detected in order to compute some soccer analysis. An illustrative example of analysis will be presented, showcasing the creation of a heat map depicting the positions of each team.
 
