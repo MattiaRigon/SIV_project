@@ -1,4 +1,4 @@
-# SIV_project
+# Soccer players detection and team classification using histograms and SVM.
 
 The project has been developed and tested on Ubuntu 22. Inside settings.py there are some fixed value used in order to analyze the videos of the cagliari stadium given by the university. 
 
